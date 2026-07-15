@@ -139,6 +139,15 @@ pub enum SecretName {
     #[ruma_enum(rename = "m.megolm_backup.v1")]
     RecoveryKey,
 
+    /// Account data key
+    ///
+    /// This type uses the unstable prefix from [MSC4483].
+    ///
+    /// [MSC4483]: https://github.com/matrix-spec/matrix-spec-proposals/pull/4483
+    #[cfg(feature = "unstable-msc4483")]
+    #[ruma_enum(rename = "dev.zirco.msc4483.account_data.key")]
+    AccountDataKey,
+
     #[doc(hidden)]
     _Custom(PrivOwnedStr),
 }
