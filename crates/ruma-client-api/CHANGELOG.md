@@ -36,6 +36,7 @@ Improvements:
   being decoded directly. The profile updates now use a `UserProfileUpdate` enum to signal if the
   profile changed or should be dropped.
 - Stabilize support for [MSC2666](https://github.com/matrix-org/matrix-spec-proposals/pull/2666) (Get rooms in common with another user).
+- Add unstable support for [MSC4527](https://github.com/matrix-org/matrix-spec-proposals/pull/4527) (State event power levels).
 
 ## 0.24.0
 
