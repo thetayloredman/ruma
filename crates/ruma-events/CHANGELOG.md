@@ -23,9 +23,11 @@ Improvements:
 - Add `RoomMessageEventContent::thread` accessor.
 - Add experimental support for [MSC4495] (Selective Presence).
 - Add experimental support for [MSC4494] (Membership-based invite blocking).
+- Add unstable support for [MSC4527] (State event power levels).
 
 [MSC4495]: https://github.com/matrix-org/matrix-spec-proposals/pull/4495
 [MSC4494]: https://github.com/matrix-org/matrix-spec-proposals/pull/4494
+[MSC4527]: https://github.com/matrix-org/matrix-spec-proposals/pull/4527
 
 Bug fixes:
 

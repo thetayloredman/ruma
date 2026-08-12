@@ -79,6 +79,17 @@ pub struct RoomPowerLevelsEventContent {
     )]
     pub redact: Int,
 
+    /// The level required to send specific state event types.
+    ///
+    /// This is a mapping from state event type to power level required.
+    #[cfg(feature = "unstable-msc4527")]
+    #[serde(
+        default,
+        skip_serializing_if = "BTreeMap::is_empty",
+        deserialize_with = "ruma_common::serde::btreemap_deserialize_v1_powerlevel_values"
+    )]
+    pub state: BTreeMap<TimelineEventType, Int>,
+
     /// The default level required to send state events.
     #[serde(
         default = "default_power_level",
@@ -125,6 +136,8 @@ impl RoomPowerLevelsEventContent {
             invite: int!(0),
             kick: default_power_level(),
             redact: default_power_level(),
+            #[cfg(feature = "unstable-msc4527")]
+            state: BTreeMap::new(),
             state_default: default_power_level(),
             users: BTreeMap::new(),
             users_default: int!(0),
@@ -152,6 +165,8 @@ impl RedactContent for RoomPowerLevelsEventContent {
             invite,
             kick,
             redact,
+            #[cfg(feature = "unstable-msc4527")]
+            state,
             state_default,
             users,
             users_default,
@@ -167,6 +182,8 @@ impl RedactContent for RoomPowerLevelsEventContent {
             invite,
             kick,
             redact,
+            #[cfg(feature = "unstable-msc4527")]
+            state,
             state_default,
             users,
             users_default,
@@ -276,6 +293,17 @@ pub struct RedactedRoomPowerLevelsEventContent {
     )]
     pub redact: Int,
 
+    /// The level required to send specific state event types.
+    ///
+    /// This is a mapping from state event type to power level required.
+    #[cfg(feature = "unstable-msc4527")]
+    #[serde(
+        default,
+        skip_serializing_if = "BTreeMap::is_empty",
+        deserialize_with = "ruma_common::serde::btreemap_deserialize_v1_powerlevel_values"
+    )]
+    pub state: BTreeMap<TimelineEventType, Int>,
+
     /// The default level required to send state events.
     #[serde(
         default = "default_power_level",
@@ -325,6 +353,8 @@ impl From<RedactedRoomPowerLevelsEventContent> for PossiblyRedactedRoomPowerLeve
             invite,
             kick,
             redact,
+            #[cfg(feature = "unstable-msc4527")]
+            state,
             state_default,
             users,
             users_default,
@@ -337,6 +367,8 @@ impl From<RedactedRoomPowerLevelsEventContent> for PossiblyRedactedRoomPowerLeve
             invite,
             kick,
             redact,
+            #[cfg(feature = "unstable-msc4527")]
+            state,
             state_default,
             users,
             users_default,
@@ -465,6 +497,14 @@ pub struct RoomPowerLevels {
     /// When built from [`RoomPowerLevelsSource::None`], defaults to `50`.
     pub redact: Int,
 
+    /// The level required to send specific state event types.
+    ///
+    /// This is a mapping from state event type to power level required.
+    ///
+    /// When built from [`RoomPowerLevelsSource::None`], defaults to an empty map.
+    #[cfg(feature = "unstable-msc4527")]
+    pub state: BTreeMap<TimelineEventType, Int>,
+
     /// The default level required to send state events.
     ///
     /// When built from [`RoomPowerLevelsSource::None`], defaults to `50`.
@@ -517,6 +557,8 @@ impl RoomPowerLevels {
                 invite,
                 kick,
                 redact,
+                #[cfg(feature = "unstable-msc4527")]
+                state,
                 state_default,
                 users,
                 users_default,
@@ -528,6 +570,8 @@ impl RoomPowerLevels {
                 invite,
                 kick,
                 redact,
+                #[cfg(feature = "unstable-msc4527")]
+                state,
                 state_default,
                 users,
                 users_default,
@@ -541,6 +585,8 @@ impl RoomPowerLevels {
                 invite,
                 kick,
                 redact,
+                #[cfg(feature = "unstable-msc4527")]
+                state,
                 state_default,
                 users,
                 users_default,
@@ -551,6 +597,8 @@ impl RoomPowerLevels {
                 invite,
                 kick,
                 redact,
+                #[cfg(feature = "unstable-msc4527")]
+                state,
                 state_default,
                 users,
                 users_default,
@@ -567,6 +615,8 @@ impl RoomPowerLevels {
                 invite: int!(0),
                 kick: default_power_level(),
                 redact: default_power_level(),
+                #[cfg(feature = "unstable-msc4527")]
+                state: BTreeMap::new(),
                 state_default: default_power_level(),
                 users: if rules.explicitly_privilege_room_creators {
                     BTreeMap::new()
@@ -597,7 +647,7 @@ impl RoomPowerLevels {
     }
 
     /// Get the power level required to perform a given action.
-    pub fn for_action(&self, action: PowerLevelAction) -> Int {
+    pub fn for_action(&self, authorization: &AuthorizationRules, action: PowerLevelAction) -> Int {
         match action {
             PowerLevelAction::Ban => self.ban,
             PowerLevelAction::Unban => self.ban.max(self.kick),
@@ -608,7 +658,7 @@ impl RoomPowerLevels {
                 self.redact.max(self.for_message(MessageLikeEventType::RoomRedaction))
             }
             PowerLevelAction::SendMessage(msg_type) => self.for_message(msg_type),
-            PowerLevelAction::SendState(state_type) => self.for_state(state_type),
+            PowerLevelAction::SendState(state_type) => self.for_state(authorization, state_type),
             PowerLevelAction::TriggerNotification(NotificationPowerLevelType::Room) => {
                 self.notifications.room
             }
@@ -621,7 +671,12 @@ impl RoomPowerLevels {
     }
 
     /// Get the power level required to send the given state event type.
-    pub fn for_state(&self, state_type: StateEventType) -> Int {
+    #[expect(unused_variables)]
+    pub fn for_state(&self, authorization: &AuthorizationRules, state_type: StateEventType) -> Int {
+        #[cfg(feature = "unstable-msc4527")]
+        if authorization.use_power_levels_state {
+            return self.state.get(&state_type.into()).copied().unwrap_or(self.state_default);
+        }
         self.events.get(&state_type.into()).copied().unwrap_or(self.state_default)
     }
 
@@ -721,8 +776,13 @@ impl RoomPowerLevels {
     /// Whether the given user can send state events based on the power levels.
     ///
     /// Shorthand for `power_levels.user_can_do(user_id, PowerLevelAction::SendState(state_type))`.
-    pub fn user_can_send_state(&self, user_id: &UserId, state_type: StateEventType) -> bool {
-        self.for_user(user_id) >= self.for_state(state_type)
+    pub fn user_can_send_state(
+        &self,
+        authorization: &AuthorizationRules,
+        user_id: &UserId,
+        state_type: StateEventType,
+    ) -> bool {
+        self.for_user(user_id) >= self.for_state(authorization, state_type)
     }
 
     /// Whether the given user can notify everybody in the room by writing `@room` in a message.
@@ -739,11 +799,13 @@ impl RoomPowerLevels {
     /// PowerLevelUserAction::ChangePowerLevel`.
     pub fn user_can_change_user_power_level(
         &self,
+        authorization: &AuthorizationRules,
         acting_user_id: &UserId,
         target_user_id: &UserId,
     ) -> bool {
         // Check that the user can change the power levels first.
-        if !self.user_can_send_state(acting_user_id, StateEventType::RoomPowerLevels) {
+        if !self.user_can_send_state(authorization, acting_user_id, StateEventType::RoomPowerLevels)
+        {
             return false;
         }
 
@@ -767,7 +829,12 @@ impl RoomPowerLevels {
     }
 
     /// Whether the given user can do the given action based on the power levels.
-    pub fn user_can_do(&self, user_id: &UserId, action: PowerLevelAction) -> bool {
+    pub fn user_can_do(
+        &self,
+        authorization: &AuthorizationRules,
+        user_id: &UserId,
+        action: PowerLevelAction,
+    ) -> bool {
         match action {
             PowerLevelAction::Ban => self.user_can_ban(user_id),
             PowerLevelAction::Unban => self.user_can_unban(user_id),
@@ -779,7 +846,7 @@ impl RoomPowerLevels {
                 self.user_can_send_message(user_id, message_type)
             }
             PowerLevelAction::SendState(state_type) => {
-                self.user_can_send_state(user_id, state_type)
+                self.user_can_send_state(authorization, user_id, state_type)
             }
             PowerLevelAction::TriggerNotification(NotificationPowerLevelType::Room) => {
                 self.user_can_trigger_room_notification(user_id)
@@ -791,6 +858,7 @@ impl RoomPowerLevels {
     /// levels.
     pub fn user_can_do_to_user(
         &self,
+        authorization: &AuthorizationRules,
         acting_user_id: &UserId,
         target_user_id: &UserId,
         action: PowerLevelUserAction,
@@ -801,7 +869,7 @@ impl RoomPowerLevels {
             PowerLevelUserAction::Invite => self.user_can_invite(acting_user_id),
             PowerLevelUserAction::Kick => self.user_can_kick_user(acting_user_id, target_user_id),
             PowerLevelUserAction::ChangePowerLevel => {
-                self.user_can_change_user_power_level(acting_user_id, target_user_id)
+                self.user_can_change_user_power_level(authorization, acting_user_id, target_user_id)
             }
         }
     }
@@ -840,6 +908,8 @@ impl TryFrom<RoomPowerLevels> for RoomPowerLevelsEventContent {
             kick: c.kick,
             redact: c.redact,
             state_default: c.state_default,
+            #[cfg(feature = "unstable-msc4527")]
+            state: c.state,
             users: c.users,
             users_default: c.users_default,
             notifications: c.notifications,
@@ -981,6 +1051,8 @@ mod tests {
             invite: int!(0),
             kick: default,
             redact: default,
+            #[cfg(feature = "unstable-msc4527")]
+            state: BTreeMap::new(),
             state_default: default,
             users: BTreeMap::new(),
             users_default: int!(0),
@@ -1002,6 +1074,10 @@ mod tests {
             invite: int!(23),
             kick: int!(23),
             redact: int!(23),
+            #[cfg(feature = "unstable-msc4527")]
+            state: btreemap! {
+                "m.dummy".into() => int!(23)
+            },
             state_default: int!(23),
             users: btreemap! {
                 user => int!(23)
@@ -1010,12 +1086,38 @@ mod tests {
             notifications: assign!(NotificationPowerLevels::new(), { room: int!(23) }),
         };
 
+        #[cfg(feature = "unstable-msc4527")]
         assert_to_canonical_json_eq!(
             power_levels_event,
             json!({
                 "ban": 23,
                 "events": {
-                    "m.dummy": 23,
+                    "m.dummy": 23
+                },
+                "events_default": 23,
+                "invite": 23,
+                "kick": 23,
+                "redact": 23,
+                "state": {
+                    "m.dummy": 23
+                },
+                "state_default": 23,
+                "users": {
+                    "@carl:example.com": 23
+                },
+                "users_default": 23,
+                "notifications": {
+                    "room": 23
+                }
+            })
+        );
+        #[cfg(not(feature = "unstable-msc4527"))]
+        assert_to_canonical_json_eq!(
+            power_levels_event,
+            json!({
+                "ban": 23,
+                "events": {
+                    "m.dummy": 23
                 },
                 "events_default": 23,
                 "invite": 23,
@@ -1023,13 +1125,13 @@ mod tests {
                 "redact": 23,
                 "state_default": 23,
                 "users": {
-                    "@carl:example.com": 23,
+                    "@carl:example.com": 23
                 },
                 "users_default": 23,
                 "notifications": {
-                    "room": 23,
-                },
-            }),
+                    "room": 23
+                }
+            })
         );
     }
 
@@ -1042,14 +1144,22 @@ mod tests {
             &AuthorizationRules::V1,
             vec![creator.to_owned()],
         );
-        assert!(v1_power_levels.user_can_change_user_power_level(creator, creator));
+        assert!(v1_power_levels.user_can_change_user_power_level(
+            &AuthorizationRules::V1,
+            creator,
+            creator
+        ));
 
         let v12_power_levels = RoomPowerLevels::new(
             RoomPowerLevelsSource::None,
             &AuthorizationRules::V12,
             vec![creator.to_owned()],
         );
-        assert!(!v12_power_levels.user_can_change_user_power_level(creator, creator));
+        assert!(!v12_power_levels.user_can_change_user_power_level(
+            &AuthorizationRules::V12,
+            creator,
+            creator
+        ));
     }
 
     #[test]
