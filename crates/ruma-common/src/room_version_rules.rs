@@ -156,6 +156,14 @@ impl RoomVersionRules {
         redaction: RedactionRules::MSC2870,
         ..Self::V11
     };
+
+    /// LogN: Allow all events.
+    #[cfg(feature = "unstable-logn-fuckery")]
+    pub const LOGN_HELL_YES: Self = Self {
+        disposition: RoomVersionDisposition::Unstable,
+        authorization: AuthorizationRules::LOGN_HELL_YES,
+        ..Self::V12
+    };
 }
 
 /// The stability of a room version.
@@ -361,6 +369,10 @@ pub struct AuthorizationRules {
     /// Whether to use the event ID of the `m.room.create` event of the room as the room ID,
     /// introduced in room version 12.
     pub room_create_event_id_as_room_id: bool,
+
+    /// Whether all events are allowed.
+    #[cfg(feature = "unstable-logn-fuckery")]
+    pub logn_fuckery_allow_all_events: bool,
 }
 
 impl AuthorizationRules {
@@ -380,6 +392,8 @@ impl AuthorizationRules {
         explicitly_privilege_room_creators: false,
         additional_room_creators: false,
         room_create_event_id_as_room_id: false,
+        #[cfg(feature = "unstable-logn-fuckery")]
+        logn_fuckery_allow_all_events: false,
     };
 
     /// Authorization rules with tweaks introduced in room version 3 ([spec]).
@@ -425,6 +439,10 @@ impl AuthorizationRules {
         room_create_event_id_as_room_id: true,
         ..Self::V11
     };
+
+    /// LogN: Allow all events.
+    #[cfg(feature = "unstable-logn-fuckery")]
+    pub const LOGN_HELL_YES: Self = Self { logn_fuckery_allow_all_events: true, ..Self::V12 };
 }
 
 /// The tweaks in the [redaction] algorithm for a room version.

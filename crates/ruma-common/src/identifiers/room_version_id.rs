@@ -73,6 +73,10 @@ pub enum RoomVersionId {
     #[cfg(feature = "unstable-msc2870")]
     MSC2870,
 
+    /// LogN: Allow all events.
+    #[cfg(feature = "unstable-logn-fuckery")]
+    LOGN_HELL_YES,
+
     #[doc(hidden)]
     _Custom(CustomRoomVersion),
 }
@@ -97,6 +101,8 @@ impl RoomVersionId {
             Self::V12 => "12",
             #[cfg(feature = "unstable-msc2870")]
             Self::MSC2870 => "org.matrix.msc2870",
+            #[cfg(feature = "unstable-logn-fuckery")]
+            Self::LOGN_HELL_YES => "dev.zirco.hell.yes",
             Self::_Custom(version) => version.as_str(),
         }
     }
@@ -126,6 +132,8 @@ impl RoomVersionId {
             Self::V12 => RoomVersionRules::V12,
             #[cfg(feature = "unstable-msc2870")]
             Self::MSC2870 => RoomVersionRules::MSC2870,
+            #[cfg(feature = "unstable-logn-fuckery")]
+            Self::LOGN_HELL_YES => RoomVersionRules::LOGN_HELL_YES,
             Self::_Custom(_) => return None,
         })
     }
@@ -212,6 +220,8 @@ where
         "12" => RoomVersionId::V12,
         #[cfg(feature = "unstable-msc2870")]
         "org.matrix.msc2870" => RoomVersionId::MSC2870,
+        #[cfg(feature = "unstable-logn-fuckery")]
+        "dev.zirco.hell.yes" => RoomVersionId::LOGN_HELL_YES,
         custom => {
             ruma_identifiers_validation::room_version_id::validate(custom)?;
             RoomVersionId::_Custom(CustomRoomVersion(room_version_id.into()))
