@@ -214,7 +214,8 @@ unstable-msc4495 = [
     "ruma-events?/unstable-msc4495"
 ]
 unstable-msc4532 = [
-    "ruma-common/unstable-msc4532"
+    "ruma-common/unstable-msc4532",
+    "ruma-events?/unstable-msc4532"
 ]
 unstable-uniffi = ["ruma-events?/unstable-uniffi"]
 
